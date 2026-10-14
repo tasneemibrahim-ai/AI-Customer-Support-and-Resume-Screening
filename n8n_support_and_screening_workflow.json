@@ -1,0 +1,703 @@
+{
+  "name": "LangChain Projects — Customer Support & Resume Screening",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "97b09467-2797-466b-880b-991e7d4f33e5",
+      "name": "Load Support KB",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// ============================================================\n// Customer Support Knowledge Base (sample data for testing)\n// ============================================================\nconst kb = [\n  {\n    category: 'billing',\n    title: 'How to update payment method',\n    content: 'To update your payment method, log into your account and navigate to Settings > Billing > Payment Methods. Click \"Add New Payment Method\" and enter your card details. The new method will be active immediately. You can also remove old cards from the same screen.'\n  },\n  {\n    category: 'billing',\n    title: 'Refund policy',\n    content: 'We offer a 30-day money-back guarantee on all subscriptions. To request a refund, contact support within 30 days of purchase. Refunds are processed within 5 to 7 business days and returned to the original payment method.'\n  },\n  {\n    category: 'billing',\n    title: 'Cancel subscription',\n    content: 'Cancel your subscription anytime from Settings > Billing > Subscription. Cancellation takes effect at the end of the current billing cycle. You retain full access until then. No cancellation fees apply.'\n  },\n  {\n    category: 'billing',\n    title: 'Pricing plans and tiers',\n    content: 'We offer three plans: Free (basic features, 100 API requests/hour), Pro ($29/month, 1000 requests/hour, priority support), and Enterprise (custom pricing, unlimited requests, dedicated manager). Annual billing saves 20 percent.'\n  },\n  {\n    category: 'technical',\n    title: 'Application crashes on startup',\n    content: 'If the application crashes on startup: 1) Clear browser cache and cookies, 2) Update to the latest version, 3) Restart your device, 4) Try a different browser, 5) Reinstall if desktop app. If the problem persists, collect crash logs from Settings > Diagnostics and contact support.'\n  },\n  {\n    category: 'technical',\n    title: 'Slow performance issues',\n    content: 'For slow performance: check your internet connection speed, close unnecessary browser tabs, disable browser extensions, clear the cache, and try incognito mode. If the application is slow only in our platform, it may be a server-side issue, please contact support.'\n  },\n  {\n    category: 'technical',\n    title: 'API rate limits and errors',\n    content: 'API rate limits by plan: Free tier 100 requests/hour, Pro 1000 requests/hour, Enterprise unlimited. Rate limits reset at the top of every hour. Exceeding limits returns HTTP 429 status code. Use exponential backoff for retries.'\n  },\n  {\n    category: 'technical',\n    title: 'Integration not syncing',\n    content: 'If your integration is not syncing: verify API credentials are correct, check permissions scope, ensure webhooks are not disabled, review logs in Settings > Integrations > Activity. Re-authenticate if tokens expired.'\n  },\n  {\n    category: 'account',\n    title: 'Reset password',\n    content: 'To reset your password, click \"Forgot Password\" on the login page and enter your email address. You will receive a reset link within 5 minutes. The link is valid for 1 hour. Check spam folder if not received.'\n  },\n  {\n    category: 'account',\n    title: 'Delete account permanently',\n    content: 'To delete your account go to Settings > Account > Delete Account. Enter your password to confirm. Account deletion is permanent and irreversible. All your data including projects, files, and history will be removed within 30 days as per GDPR.'\n  },\n  {\n    category: 'account',\n    title: 'Two-factor authentication setup',\n    content: 'Enable 2FA under Settings > Security > Two-Factor Authentication. Scan the QR code with an authenticator app like Google Authenticator or Authy. Save the backup codes in a secure location. You can also use SMS but app-based is more secure.'\n  },\n  {\n    category: 'account',\n    title: 'Change email address',\n    content: 'To change your email address, go to Settings > Account > Email. Enter the new email and your current password. A verification link will be sent to the new address. The change takes effect after verification.'\n  },\n  {\n    category: 'general',\n    title: 'Business hours and support availability',\n    content: 'Our support team is available Sunday to Thursday, 9 AM to 6 PM Cairo time (EET). Email support responses within 24 hours for standard tier, 4 hours for Pro, and 1 hour for Enterprise. Live chat available during business hours.'\n  },\n  {\n    category: 'general',\n    title: 'Data privacy and security',\n    content: 'We are GDPR and SOC 2 compliant. All data is encrypted in transit using TLS 1.3 and at rest using AES-256. We do not sell user data. You can export or delete your data anytime from Settings > Privacy. Read our full privacy policy at our website.'\n  },\n  {\n    category: 'general',\n    title: 'Feature request process',\n    content: 'Submit feature requests through Settings > Feedback > Feature Request, or our public roadmap board. Our product team reviews requests weekly. Popular requests are prioritized. We announce new features in our monthly newsletter and changelog.'\n  }\n];\n\nreturn kb.map((item, idx) => ({\n  json: {\n    id: 'kb_' + (idx + 1),\n    category: item.category,\n    title: item.title,\n    text: 'Category: ' + item.category + '\\nTitle: ' + item.title + '\\n\\n' + item.content\n  }\n}));\n"
+      },
+      "id": "9225faeb-05cf-4198-9878-44229d822c57",
+      "name": "Generate Sample KB Data",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        224,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "insert",
+        "memoryKey": "support_kb",
+        "clearStore": true
+      },
+      "id": "cb849f70-3505-4327-ad8a-a0ee1d69a841",
+      "name": "Insert KB to Vector Store",
+      "type": "@n8n/n8n-nodes-langchain.vectorStoreInMemory",
+      "typeVersion": 1.1,
+      "position": [
+        528,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "id": "62a364b3-0b95-4943-b0bd-fca9c0aa6fc3",
+      "name": "Embeddings HF (KB Insert)",
+      "type": "@n8n/n8n-nodes-langchain.embeddingsHuggingFaceInference",
+      "typeVersion": 1,
+      "position": [
+        448,
+        224
+      ],
+      "credentials": {
+        "huggingFaceApi": {
+          "id": "U4Kck8qdMJ2qKv7U",
+          "name": "Hugging Face account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsonMode": "expressionData",
+        "jsonData": "={{ $json.text }}",
+        "options": {
+          "metadata": {
+            "metadataValues": [
+              {
+                "name": "id",
+                "value": "={{ $json.id }}"
+              },
+              {
+                "name": "category",
+                "value": "={{ $json.category }}"
+              },
+              {
+                "name": "title",
+                "value": "={{ $json.title }}"
+              }
+            ]
+          }
+        }
+      },
+      "id": "24b2ae4e-dce5-4936-979d-8a4ca63e66f4",
+      "name": "Data Loader (KB)",
+      "type": "@n8n/n8n-nodes-langchain.documentDefaultDataLoader",
+      "typeVersion": 1.1,
+      "position": [
+        736,
+        208
+      ]
+    },
+    {
+      "parameters": {
+        "chunkSize": 600,
+        "chunkOverlap": 80,
+        "options": {}
+      },
+      "id": "e6f29263-11f7-4186-b19a-2e14d22bd24d",
+      "name": "Text Splitter (KB)",
+      "type": "@n8n/n8n-nodes-langchain.textSplitterRecursiveCharacterTextSplitter",
+      "typeVersion": 1,
+      "position": [
+        624,
+        320
+      ]
+    },
+    {
+      "parameters": {
+        "public": true,
+        "options": {
+          "subtitle": "Ask me anything — I'll search the KB or create a ticket.",
+          "title": "Customer Support Assistant"
+        }
+      },
+      "id": "c058c62d-cd40-4829-96cf-11d7ccb64acc",
+      "name": "Customer Support Chat",
+      "type": "@n8n/n8n-nodes-langchain.chatTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        0,
+        720
+      ],
+      "webhookId": "customer-support-chat"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $json.chatInput }}",
+        "options": {
+          "systemMessage": "You are an intelligent customer support agent for our SaaS company.\n\nYour workflow for every customer message:\n\n1. FIRST: Use the `search_knowledge_base` tool to find relevant answers in our KB.\n2. If the KB has a clear answer → explain it to the customer in friendly language.\n3. If the KB does NOT have a sufficient answer OR the customer explicitly asks for a ticket:\n   a. Use `classify_issue` to categorize the problem (billing / technical / account / general) and priority.\n   b. Then use `create_ticket` with a clear summary, the category and priority from step (a), and the customer email if provided.\n4. ALWAYS respond to the customer with this structured format:\n\n---\n**Issue Summary:** <one-line summary>\n**Category:** <billing | technical | account | general>\n**Suggested Solution:** <from KB or from your reasoning>\n**Ticket ID:** <only if a ticket was created, otherwise \"Not needed\">\n---\n\nRules:\n- Be empathetic, polite, and professional.\n- If the customer seems frustrated, acknowledge it first before jumping into solutions.\n- Never make up information not in the KB. If unsure, create a ticket.\n- If the customer provides an email, pass it to create_ticket.\n- Keep responses concise but helpful.",
+          "maxIterations": 8
+        }
+      },
+      "id": "2cb0a7e7-602a-4043-b5c3-df23698a0d9a",
+      "name": "Support Agent",
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 1.7,
+      "position": [
+        320,
+        720
+      ]
+    },
+    {
+      "parameters": {
+        "model": "llama-3.3-70b-versatile",
+        "options": {
+          "maxTokensToSample": 1024,
+          "temperature": 0.2
+        }
+      },
+      "id": "382a3246-70cc-4940-88a5-301911ea824a",
+      "name": "Groq Chat Model (Support)",
+      "type": "@n8n/n8n-nodes-langchain.lmChatGroq",
+      "typeVersion": 1,
+      "position": [
+        192,
+        944
+      ],
+      "credentials": {
+        "groqApi": {
+          "id": "46TJ1GJUvgisszEp",
+          "name": "Groq account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sessionIdType": "customKey",
+        "sessionKey": "={{ $json.sessionId }}",
+        "contextWindowLength": 10
+      },
+      "id": "05477795-0e60-40a1-bf5e-cfec390f57fa",
+      "name": "Support Memory",
+      "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
+      "typeVersion": 1.3,
+      "position": [
+        304,
+        944
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "retrieve-as-tool",
+        "toolName": "search_knowledge_base",
+        "toolDescription": "Search the internal customer support knowledge base for relevant FAQs and documentation. Use this FIRST before creating a ticket. Input should be the customer's question or a short query describing the issue.",
+        "memoryKey": "support_kb"
+      },
+      "id": "af076596-426c-4506-a4aa-4d23f8fbd2a3",
+      "name": "Search Knowledge Base",
+      "type": "@n8n/n8n-nodes-langchain.vectorStoreInMemory",
+      "typeVersion": 1.1,
+      "position": [
+        416,
+        944
+      ]
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "id": "981cbeb6-4621-4b91-a40c-0bbfe1b6affb",
+      "name": "Embeddings HF (KB Retrieve)",
+      "type": "@n8n/n8n-nodes-langchain.embeddingsHuggingFaceInference",
+      "typeVersion": 1,
+      "position": [
+        432,
+        1168
+      ],
+      "credentials": {
+        "huggingFaceApi": {
+          "id": "gXoErh2ixisBs7pf",
+          "name": "Hugging Face account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "description": "Classify a customer issue into a category (billing, technical, account, general) and priority (low, medium, high). Call this BEFORE creating a ticket. Input should be a string describing the customer's issue.",
+        "jsCode": "// ============================================================\n// Classify customer issue into category + priority\n// Input: issue description string (via `query` variable)\n// Output: JSON with category, priority, reasoning\n// ============================================================\nconst issue = String(query || '').toLowerCase();\n\nlet category = 'general';\nlet priority = 'medium';\n\n// Category detection by keyword patterns\nif (/(payment|invoice|bill|charge|refund|subscription|price|pricing|cost|credit card|money|paid|pay|discount|plan)/i.test(issue)) {\n  category = 'billing';\n} else if (/(error|bug|crash|not working|broken|fail|issue|problem|slow|lag|freeze|500|404|api|endpoint|request|timeout|integration)/i.test(issue)) {\n  category = 'technical';\n} else if (/(login|password|account|access|username|reset|signup|register|2fa|authentication|email|delete|sign in|sign up)/i.test(issue)) {\n  category = 'account';\n}\n\n// Priority detection\nif (/(urgent|critical|asap|emergency|down|outage|severe|immediately|cannot|can't work|losing money|data loss|production)/i.test(issue)) {\n  priority = 'high';\n} else if (/(minor|small|little|whenever|slight|suggestion|feature request|nice to have|enhancement)/i.test(issue)) {\n  priority = 'low';\n}\n\nreturn JSON.stringify({\n  category: category,\n  priority: priority,\n  classification_method: 'keyword-based-rules',\n  reasoning: 'Detected category \"' + category + '\" and priority \"' + priority + '\" based on keyword analysis of: ' + issue.substring(0, 100)\n});\n"
+      },
+      "id": "7fc5bf5a-64e9-4800-a323-c95d571804b5",
+      "name": "Classify Issue Tool",
+      "type": "@n8n/n8n-nodes-langchain.toolCode",
+      "typeVersion": 1.2,
+      "position": [
+        544,
+        944
+      ]
+    },
+    {
+      "parameters": {
+        "description": "Create a customer support ticket. Call this AFTER classify_issue. Input MUST be a JSON string with keys: summary (string), category (string from classify_issue), priority (string from classify_issue), customer_email (string, optional). Returns ticket_id.",
+        "jsCode": "// ============================================================\n// Create a support ticket\n// Input: JSON string with summary, category, priority, customer_email\n// Output: JSON with ticket_id and confirmation\n// ============================================================\nlet data = {};\ntry {\n  if (typeof query === 'string') {\n    // Try to parse as JSON, otherwise treat as summary text\n    try {\n      data = JSON.parse(query);\n    } catch (e) {\n      data = { summary: query };\n    }\n  } else if (typeof query === 'object' && query !== null) {\n    data = query;\n  }\n} catch (e) {\n  data = { summary: String(query || 'Customer support request') };\n}\n\n// Generate unique ticket ID\nconst ticketId = 'TKT-' + Date.now().toString(36).toUpperCase() + '-' + Math.random().toString(36).substr(2, 4).toUpperCase();\nconst timestamp = new Date().toISOString();\n\nconst ticket = {\n  ticket_id: ticketId,\n  created_at: timestamp,\n  status: 'open',\n  summary: data.summary || 'Customer support request',\n  category: data.category || 'general',\n  priority: data.priority || 'medium',\n  customer_email: data.customer_email || data.email || 'anonymous@customer.com',\n  description: data.description || data.summary || ''\n};\n\n// Attempt to persist in workflow static data (in-memory across executions)\ntry {\n  const staticData = $getWorkflowStaticData('global');\n  if (!staticData.tickets) staticData.tickets = [];\n  staticData.tickets.push(ticket);\n  ticket.total_tickets_in_system = staticData.tickets.length;\n} catch (e) {\n  // Static data not accessible in this tool context\n}\n\n// Response times based on priority\nconst slaMap = { high: '1 hour', medium: '24 hours', low: '3 business days' };\nconst sla = slaMap[ticket.priority] || '24 hours';\n\nreturn JSON.stringify({\n  success: true,\n  message: 'Ticket ' + ticketId + ' created successfully. Our ' + ticket.category + ' team will respond within ' + sla + '.',\n  ticket: ticket\n});\n"
+      },
+      "id": "8f33b6e7-e2b0-41ed-85df-4541b729b2a4",
+      "name": "Create Ticket Tool",
+      "type": "@n8n/n8n-nodes-langchain.toolCode",
+      "typeVersion": 1.2,
+      "position": [
+        672,
+        944
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// ============================================================\n// Sample Resume Database (for testing)\n// ============================================================\nconst resumes = [\n  {\n    id: 'cand_001',\n    name: 'Ahmed Hassan',\n    email: 'ahmed.hassan@email.com',\n    years_experience: 5,\n    current_role: 'Senior Backend Developer',\n    skills: ['Python', 'Django', 'FastAPI', 'PostgreSQL', 'AWS', 'Docker', 'REST APIs', 'Microservices', 'Redis', 'Celery'],\n    education: 'BS Computer Science, Cairo University, 2018',\n    summary: 'Experienced backend developer with 5 years building scalable REST APIs and microservices. Led a team of 4 developers at a fintech startup. Expert in Python ecosystem with strong database design skills and cloud infrastructure.',\n    work_history: '2021-Present Senior Backend Developer at FinTechCo built payment system handling 1M+ transactions daily. 2019-2021 Backend Developer at WebAgency developed 15 client projects using Django and FastAPI. 2018-2019 Junior Developer at StartupX worked on e-commerce platform.'\n  },\n  {\n    id: 'cand_002',\n    name: 'Sara Mohamed',\n    email: 'sara.m@email.com',\n    years_experience: 3,\n    current_role: 'Full Stack Developer',\n    skills: ['JavaScript', 'TypeScript', 'React', 'Next.js', 'Node.js', 'Express', 'MongoDB', 'GraphQL', 'Tailwind CSS', 'Jest'],\n    education: 'BS Information Systems, Ain Shams University, 2020',\n    summary: 'Full stack developer focused on modern web applications. Strong frontend skills with React and Next.js. Competent backend work with Node.js. Built SaaS dashboard with 10k+ active users.',\n    work_history: '2022-Present Full Stack Developer at TechHub built SaaS dashboard with 10k active users. 2020-2022 Frontend Developer at DigitalAgency delivered 20+ websites and web apps using React.'\n  },\n  {\n    id: 'cand_003',\n    name: 'Mohamed Ali',\n    email: 'mohamed.ali@email.com',\n    years_experience: 8,\n    current_role: 'Engineering Manager',\n    skills: ['Python', 'Go', 'Kubernetes', 'AWS', 'System Design', 'Team Leadership', 'PostgreSQL', 'Kafka', 'Microservices', 'Terraform', 'gRPC'],\n    education: 'MS Computer Science, AUC 2015. BS Engineering, Cairo University 2013',\n    summary: 'Engineering manager with 8 years experience including 3 years in leadership. Strong technical background in distributed systems and cloud architecture. Led teams of 8-12 engineers. Designed high-traffic microservices architecture.',\n    work_history: '2022-Present Engineering Manager at CloudCorp leading platform team of 10 engineers. 2019-2022 Staff Engineer at TechGiant designed microservices architecture. 2016-2019 Senior Engineer at Startup built core infrastructure from scratch.'\n  },\n  {\n    id: 'cand_004',\n    name: 'Nour Ibrahim',\n    email: 'nour.ibrahim@email.com',\n    years_experience: 2,\n    current_role: 'Junior Frontend Developer',\n    skills: ['HTML', 'CSS', 'JavaScript', 'React', 'Bootstrap', 'Git', 'Figma'],\n    education: 'BS Computer Science, Alexandria University, 2023',\n    summary: 'Junior developer passionate about UI/UX and frontend technologies. Recent graduate with internship experience. Building responsive websites for small and medium business clients.',\n    work_history: '2023-Present Junior Frontend Developer at WebStudio building responsive websites. 2022-2023 Frontend Intern at TechCo worked on landing pages and React components.'\n  },\n  {\n    id: 'cand_005',\n    name: 'Yara Mahmoud',\n    email: 'yara.m@email.com',\n    years_experience: 6,\n    current_role: 'Senior Data Engineer',\n    skills: ['Python', 'SQL', 'Apache Spark', 'Airflow', 'AWS', 'Data Warehousing', 'ETL', 'Snowflake', 'dbt', 'Kafka', 'PostgreSQL'],\n    education: 'MS Data Science, Nile University 2019. BS Statistics, Cairo University 2017',\n    summary: 'Data engineer with 6 years building data pipelines and warehouses. Expert in ETL/ELT patterns and modern data stack. Experience with petabyte-scale systems. Built real-time pipeline processing 500GB daily.',\n    work_history: '2021-Present Senior Data Engineer at DataCorp built real-time pipeline. 2019-2021 Data Engineer at Analytics Inc designed data warehouse serving 20 stakeholders. 2017-2019 Data Analyst at MarketingCo.'\n  },\n  {\n    id: 'cand_006',\n    name: 'Khaled Fathy',\n    email: 'khaled.f@email.com',\n    years_experience: 4,\n    current_role: 'Machine Learning Engineer',\n    skills: ['Python', 'TensorFlow', 'PyTorch', 'Scikit-learn', 'NLP', 'Computer Vision', 'MLOps', 'Docker', 'AWS SageMaker', 'FastAPI'],\n    education: 'MS Artificial Intelligence, Cairo University, 2021. BS Computer Engineering 2019',\n    summary: 'Machine learning engineer specialized in NLP and computer vision. Deployed 5+ models to production serving millions of requests. Published research on transformer architectures.',\n    work_history: '2022-Present ML Engineer at AI Startup deployed NLP models. 2020-2022 Data Scientist at TechCo built recommendation systems.'\n  }\n];\n\nreturn resumes.map(r => ({\n  json: {\n    id: r.id,\n    name: r.name,\n    email: r.email,\n    years_experience: r.years_experience,\n    skills: r.skills.join(', '),\n    text: 'Name: ' + r.name + '\\nRole: ' + r.current_role + '\\nExperience: ' + r.years_experience + ' years\\nSkills: ' + r.skills.join(', ') + '\\nEducation: ' + r.education + '\\n\\nSummary: ' + r.summary + '\\n\\nWork History: ' + r.work_history,\n    raw: r\n  }\n}));\n"
+      },
+      "id": "45804300-9a09-4f96-bd77-ee94cc1d8aed",
+      "name": "Generate Sample Resumes",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        224,
+        1600
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "insert",
+        "memoryKey": "resumes_db",
+        "clearStore": true
+      },
+      "id": "52637b31-fa44-45a8-86ef-7c82da335185",
+      "name": "Insert Resumes to Vector Store",
+      "type": "@n8n/n8n-nodes-langchain.vectorStoreInMemory",
+      "typeVersion": 1.1,
+      "position": [
+        528,
+        1600
+      ]
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "id": "36e4ac0d-5552-4f3a-9c8b-0de2bde4e900",
+      "name": "Embeddings HF (Resume Insert)",
+      "type": "@n8n/n8n-nodes-langchain.embeddingsHuggingFaceInference",
+      "typeVersion": 1,
+      "position": [
+        448,
+        1824
+      ],
+      "credentials": {
+        "huggingFaceApi": {
+          "id": "gXoErh2ixisBs7pf",
+          "name": "Hugging Face account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsonMode": "expressionData",
+        "jsonData": "={{ $json.text }}",
+        "options": {
+          "metadata": {
+            "metadataValues": [
+              {
+                "name": "id",
+                "value": "={{ $json.id }}"
+              },
+              {
+                "name": "name",
+                "value": "={{ $json.name }}"
+              },
+              {
+                "name": "email",
+                "value": "={{ $json.email }}"
+              },
+              {
+                "name": "years_experience",
+                "value": "={{ $json.years_experience }}"
+              },
+              {
+                "name": "skills",
+                "value": "={{ $json.skills }}"
+              }
+            ]
+          }
+        }
+      },
+      "id": "bf1c64e8-7dcf-4e79-95ec-56587f3ab5cb",
+      "name": "Data Loader (Resumes)",
+      "type": "@n8n/n8n-nodes-langchain.documentDefaultDataLoader",
+      "typeVersion": 1.1,
+      "position": [
+        560,
+        1824
+      ]
+    },
+    {
+      "parameters": {
+        "chunkOverlap": 100,
+        "options": {}
+      },
+      "id": "e2e4941e-bf4b-4306-8fbe-ddc9a761e10c",
+      "name": "Text Splitter (Resumes)",
+      "type": "@n8n/n8n-nodes-langchain.textSplitterRecursiveCharacterTextSplitter",
+      "typeVersion": 1,
+      "position": [
+        560,
+        2032
+      ]
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $json.chatInput }}",
+        "options": {
+          "systemMessage": "You are an AI recruiting assistant that screens resumes against job descriptions.\n\nWorkflow for every HR request:\n\n1. Use `analyze_job_description` on the provided JD to extract: required skills, minimum years experience, and seniority level.\n2. Use `search_resumes` multiple times with different queries derived from the JD (e.g., by main skills, by role, by experience level) to find the most relevant candidates from the resume database. Run at least 2-3 searches to get good coverage.\n3. For each retrieved candidate, use `score_candidate` to compute a match score. The input must be a JSON STRING like:\n   {\"candidate\": {\"id\": \"...\", \"name\": \"...\", \"years_experience\": N, \"skills\": [\"...\"]}, \"requirements\": {\"skills\": [\"...\"], \"min_experience\": N}}\n   Get the candidate info from the metadata returned by search_resumes.\n4. Rank candidates by total_score (highest first).\n5. Present a final report with the top 3-5 candidates.\n\nOutput format (markdown):\n\n# Job Analysis\n- **Seniority:** ...\n- **Required Skills:** ...\n- **Min Experience:** ... years\n\n# Candidate Rankings\n\n## 1. [Name] — Score: XX/100 — [Recommendation]\n- **Matched skills:** ...\n- **Missing skills:** ...\n- **Experience:** N years (required: M)\n- **Reasoning:** ...\n\n## 2. [Name] — Score: XX/100 ...\n(repeat for top candidates)\n\n# Final Recommendation\nProvide a short summary of who to interview first and why.\n\nRules:\n- Do not invent candidates; only use those returned by search_resumes.\n- Always call score_candidate for each relevant candidate — do not skip scoring.\n- Be objective: score based on skills and experience, not names or backgrounds.\n- If no candidates match well, say so honestly.",
+          "maxIterations": 15
+        }
+      },
+      "id": "0c7411d4-2346-46f9-b3e8-eab90100ea12",
+      "name": "Screening Agent",
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 1.7,
+      "position": [
+        320,
+        2320
+      ]
+    },
+    {
+      "parameters": {
+        "model": "llama-3.3-70b-versatile",
+        "options": {
+          "maxTokensToSample": 2048,
+          "temperature": 0.1
+        }
+      },
+      "id": "7e9582a8-d84c-492d-9102-70ba04892e27",
+      "name": "Groq Chat Model (Screening)",
+      "type": "@n8n/n8n-nodes-langchain.lmChatGroq",
+      "typeVersion": 1,
+      "position": [
+        192,
+        2544
+      ],
+      "credentials": {
+        "groqApi": {
+          "id": "46TJ1GJUvgisszEp",
+          "name": "Groq account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sessionIdType": "customKey",
+        "sessionKey": "={{ $json.sessionId }}",
+        "contextWindowLength": 8
+      },
+      "id": "298dc442-9d4e-4833-b142-622902d79378",
+      "name": "Screening Memory",
+      "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
+      "typeVersion": 1.3,
+      "position": [
+        304,
+        2544
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "retrieve-as-tool",
+        "toolName": "search_resumes",
+        "toolDescription": "Semantic search over the resume database. Input should be a query describing the kind of candidate (e.g. 'senior backend engineer with Python and AWS' or 'React frontend developer 3+ years'). Returns matching resumes with metadata (id, name, email, years_experience, skills).",
+        "memoryKey": "resumes_db",
+        "topK": 5
+      },
+      "id": "c8162ab9-eae5-4fb2-a79a-0f3b786580fd",
+      "name": "Search Resumes",
+      "type": "@n8n/n8n-nodes-langchain.vectorStoreInMemory",
+      "typeVersion": 1.1,
+      "position": [
+        432,
+        2544
+      ]
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "id": "42d3fec0-d5a4-433c-8099-6b091c0c6525",
+      "name": "Embeddings HF (Resume Retrieve)",
+      "type": "@n8n/n8n-nodes-langchain.embeddingsHuggingFaceInference",
+      "typeVersion": 1,
+      "position": [
+        432,
+        2768
+      ],
+      "credentials": {
+        "huggingFaceApi": {
+          "id": "gXoErh2ixisBs7pf",
+          "name": "Hugging Face account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "description": "Parse a job description and extract structured requirements: required skills, minimum years of experience, and seniority level (junior/mid/senior). Input: the raw job description text.",
+        "jsCode": "// ============================================================\n// Analyze job description: extract required skills, experience, seniority\n// Input: job description text (via `query`)\n// Output: structured JSON with requirements\n// ============================================================\nconst jd = String(query || '').toLowerCase();\n\nconst commonSkills = [\n  'python', 'javascript', 'typescript', 'java', 'c++', 'c#', 'go', 'golang', 'rust', 'ruby', 'php',\n  'react', 'vue', 'angular', 'svelte', 'node.js', 'nodejs', 'next.js', 'nextjs',\n  'django', 'flask', 'fastapi', 'express', 'spring', 'rails',\n  'postgresql', 'postgres', 'mysql', 'mongodb', 'redis', 'kafka', 'elasticsearch', 'cassandra',\n  'aws', 'azure', 'gcp', 'docker', 'kubernetes', 'terraform', 'ansible',\n  'machine learning', 'deep learning', 'tensorflow', 'pytorch', 'scikit-learn', 'nlp', 'computer vision',\n  'data engineering', 'etl', 'spark', 'airflow', 'snowflake', 'dbt', 'data warehousing',\n  'rest api', 'graphql', 'grpc', 'microservices', 'system design',\n  'ci/cd', 'jenkins', 'github actions', 'gitlab',\n  'html', 'css', 'tailwind', 'bootstrap', 'figma',\n  'agile', 'scrum', 'team leadership'\n];\n\nconst foundSkills = commonSkills.filter(skill => jd.includes(skill));\n\n// Extract minimum experience\nlet minExperience = 0;\nconst expMatches = jd.match(/(\\d+)\\s*\\+?\\s*(?:year|yr)s?/g);\nif (expMatches && expMatches.length > 0) {\n  const nums = expMatches.map(m => parseInt(m.match(/\\d+/)[0]));\n  minExperience = Math.min(...nums);\n}\n\n// Seniority detection\nlet seniority = 'mid';\nif (/(senior|lead|principal|staff|architect|manager|head of|director)/i.test(jd)) {\n  seniority = 'senior';\n} else if (/(junior|entry.level|intern|graduate|fresh)/i.test(jd)) {\n  seniority = 'junior';\n}\n\nreturn JSON.stringify({\n  extracted_skills: foundSkills,\n  min_experience_years: minExperience,\n  seniority_level: seniority,\n  total_skills_found: foundSkills.length\n});\n"
+      },
+      "id": "8b8d6611-00d9-4fee-a58e-90cc4f6121f5",
+      "name": "Analyze JD Tool",
+      "type": "@n8n/n8n-nodes-langchain.toolCode",
+      "typeVersion": 1.2,
+      "position": [
+        816,
+        2528
+      ]
+    },
+    {
+      "parameters": {
+        "description": "Score a candidate against job requirements. Input MUST be a JSON string: {\"candidate\": {\"id\": \"...\", \"name\": \"...\", \"years_experience\": N, \"skills\": [\"...\", \"...\"]}, \"requirements\": {\"skills\": [\"...\"], \"min_experience\": N}}. Returns score 0-100, matched/missing skills, and recommendation.",
+        "jsCode": "// ============================================================\n// Score a candidate against job requirements\n// Input: JSON string with { candidate: {...}, requirements: {...} }\n// Output: scored evaluation JSON\n// ============================================================\nlet data = {};\ntry {\n  data = typeof query === 'string' ? JSON.parse(query) : query;\n} catch (e) {\n  return JSON.stringify({\n    error: 'Invalid input. Expected JSON string with candidate and requirements objects.',\n    received: String(query).substring(0, 200)\n  });\n}\n\nconst candidate = data.candidate || {};\nconst requirements = data.requirements || {};\n\n// Normalize skills (accept either array or comma-separated string)\nconst normalizeSkills = (s) => {\n  if (Array.isArray(s)) return s.map(x => String(x).toLowerCase().trim());\n  if (typeof s === 'string') return s.split(',').map(x => x.toLowerCase().trim()).filter(Boolean);\n  return [];\n};\n\nconst candidateSkills = normalizeSkills(candidate.skills);\nconst requiredSkills = normalizeSkills(requirements.skills);\n\n// Match skills (with partial matching for variations like 'nodejs' vs 'node.js')\nconst matchedSkills = requiredSkills.filter(reqSkill =>\n  candidateSkills.some(cs =>\n    cs.includes(reqSkill) || reqSkill.includes(cs) ||\n    cs.replace(/[.\\s-]/g, '') === reqSkill.replace(/[.\\s-]/g, '')\n  )\n);\nconst missingSkills = requiredSkills.filter(s => !matchedSkills.includes(s));\n\nconst skillsMatchPercent = requiredSkills.length > 0\n  ? Math.round((matchedSkills.length / requiredSkills.length) * 100)\n  : 50;\n\n// Experience scoring\nconst candidateExp = Number(candidate.years_experience) || 0;\nconst requiredExp = Number(requirements.min_experience) || 0;\nconst experienceMatch = candidateExp >= requiredExp;\nconst expScore = experienceMatch\n  ? Math.min(100, 70 + (candidateExp - requiredExp) * 5)\n  : Math.max(0, 70 - (requiredExp - candidateExp) * 15);\n\n// Weighted total: 60% skills + 30% experience + 10% baseline\nconst totalScore = Math.round(skillsMatchPercent * 0.6 + expScore * 0.3 + 10);\n\nlet recommendation = 'no';\nif (totalScore >= 85) recommendation = 'strong_yes';\nelse if (totalScore >= 70) recommendation = 'yes';\nelse if (totalScore >= 50) recommendation = 'maybe';\n\nreturn JSON.stringify({\n  candidate_id: candidate.id || 'unknown',\n  candidate_name: candidate.name || 'Unknown',\n  total_score: totalScore,\n  skills_match_percent: skillsMatchPercent,\n  matched_skills: matchedSkills,\n  missing_skills: missingSkills,\n  experience_match: experienceMatch,\n  experience_score: expScore,\n  recommendation: recommendation,\n  reasoning: 'Candidate ' + (candidate.name || 'Unknown') + ' matches ' + matchedSkills.length + '/' + requiredSkills.length + ' required skills (' + skillsMatchPercent + '%). Has ' + candidateExp + ' years experience vs ' + requiredExp + ' required. Overall score: ' + totalScore + '/100. Recommendation: ' + recommendation + '.'\n});\n"
+      },
+      "id": "c801ae07-60bc-4dc1-92a7-665a99369337",
+      "name": "Score Candidate Tool",
+      "type": "@n8n/n8n-nodes-langchain.toolCode",
+      "typeVersion": 1.2,
+      "position": [
+        1040,
+        2496
+      ]
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Load Support KB": {
+      "main": [
+        [
+          {
+            "node": "Generate Sample KB Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generate Sample KB Data": {
+      "main": [
+        [
+          {
+            "node": "Insert KB to Vector Store",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Embeddings HF (KB Insert)": {
+      "ai_embedding": [
+        [
+          {
+            "node": "Insert KB to Vector Store",
+            "type": "ai_embedding",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Data Loader (KB)": {
+      "ai_document": [
+        [
+          {
+            "node": "Insert KB to Vector Store",
+            "type": "ai_document",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Customer Support Chat": {
+      "main": [
+        [
+          {
+            "node": "Support Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Groq Chat Model (Support)": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Support Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Support Memory": {
+      "ai_memory": [
+        [
+          {
+            "node": "Support Agent",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Search Knowledge Base": {
+      "ai_tool": [
+        [
+          {
+            "node": "Support Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Embeddings HF (KB Retrieve)": {
+      "ai_embedding": [
+        [
+          {
+            "node": "Search Knowledge Base",
+            "type": "ai_embedding",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Classify Issue Tool": {
+      "ai_tool": [
+        [
+          {
+            "node": "Support Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create Ticket Tool": {
+      "ai_tool": [
+        [
+          {
+            "node": "Support Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generate Sample Resumes": {
+      "main": [
+        [
+          {
+            "node": "Insert Resumes to Vector Store",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Embeddings HF (Resume Insert)": {
+      "ai_embedding": [
+        [
+          {
+            "node": "Insert Resumes to Vector Store",
+            "type": "ai_embedding",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Data Loader (Resumes)": {
+      "ai_document": [
+        [
+          {
+            "node": "Insert Resumes to Vector Store",
+            "type": "ai_document",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Groq Chat Model (Screening)": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Screening Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Screening Memory": {
+      "ai_memory": [
+        [
+          {
+            "node": "Screening Agent",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Search Resumes": {
+      "ai_tool": [
+        [
+          {
+            "node": "Screening Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Embeddings HF (Resume Retrieve)": {
+      "ai_embedding": [
+        [
+          {
+            "node": "Search Resumes",
+            "type": "ai_embedding",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Analyze JD Tool": {
+      "ai_tool": [
+        [
+          {
+            "node": "Screening Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Score Candidate Tool": {
+      "ai_tool": [
+        [
+          {
+            "node": "Screening Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "7a82cca0-5e04-4758-99f5-ca3a66707e76",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "27910a7e9e564f163c25d56746771be3efb9524df630d37f10e10f92bf7a50cf"
+  },
+  "id": "dl5WancLgk8BJuUg",
+  "tags": []
+}
